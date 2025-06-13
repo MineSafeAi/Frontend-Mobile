@@ -1,9 +1,12 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'gallery_screen.dart';
-import 'dart:typed_data';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'report_selection_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -38,19 +41,23 @@ class _CameraScreenState extends State<CameraScreen> {
 
     await Permission.camera.request();
     await Permission.storage.request();
-    await Permission.photos.request();
 
     final image = await controller!.takePicture();
     final bytes = await image.readAsBytes();
 
-    final result = await ImageGallerySaver.saveImage(
-      Uint8List.fromList(bytes),
-      quality: 100,
-      name: 'minesafe_${DateTime.now().millisecondsSinceEpoch}',
-    );
+    final Directory appDir = await getApplicationDocumentsDirectory();
+    final Directory customDir = Directory('${appDir.path}/minesafe_photos');
+
+    if (!await customDir.exists()) {
+      await customDir.create(recursive: true);
+    }
+
+    final String filePath = '${customDir.path}/minesafe_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final File file = File(filePath);
+    await file.writeAsBytes(bytes);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Imagen guardada en galería")),
+      SnackBar(content: Text('Imagen guardada en la app')),
     );
   }
 
@@ -58,7 +65,10 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF8E7B9),
-      appBar: AppBar(backgroundColor: Color(0xFFF8E7B9), title: Text("Cámara")),
+      appBar: AppBar(
+        backgroundColor: Color(0xFFF8E7B9),
+        title: Text("Cámara"),
+      ),
       body: controller == null || !controller!.value.isInitialized
           ? Center(child: CircularProgressIndicator())
           : Stack(
@@ -82,7 +92,10 @@ class _CameraScreenState extends State<CameraScreen> {
         currentIndex: 0,
         onTap: (index) {
           if (index == 1) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => GalleryScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ReportSelectionScreen()),
+            );
           }
         },
         items: const [
