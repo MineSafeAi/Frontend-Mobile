@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'report_form_screen.dart';
 import 'report_result_screen.dart';
 
 class ReportSelectionScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _ReportSelectionScreenState extends State<ReportSelectionScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ReportResultScreen(selectedImages: selectedFiles),
+        builder: (_) => ReportFormScreen(selectedImages: selectedFiles),
       ),
     );
   }
