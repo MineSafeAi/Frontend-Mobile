@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'report_selection_screen.dart';
+import 'report_list_screen.dart'; // <-- tu pantalla de lista de reportes
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -14,35 +14,40 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  CameraController? controller;
+  CameraController? _controller;
+  int _currentIndex = 0;
+  List<CameraDescription>? _cameras;
 
   @override
   void initState() {
     super.initState();
-    initCamera();
+    _initCamera();
   }
 
-  void initCamera() async {
-    final cameras = await availableCameras();
-    controller = CameraController(cameras[0], ResolutionPreset.high);
-    await controller!.initialize();
-    if (!mounted) return;
-    setState(() {});
+  Future<void> _initCamera() async {
+    _cameras = await availableCameras();
+    if (_cameras != null && _cameras!.isNotEmpty) {
+      _controller = CameraController(_cameras![0], ResolutionPreset.high);
+      await _controller!.initialize();
+      if (mounted) {
+        setState(() {});
+      }
+    }
   }
 
   @override
   void dispose() {
-    controller?.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
-  Future<void> takePictureAndSave() async {
-    if (controller == null || !controller!.value.isInitialized) return;
+  Future<void> _takePictureAndSave() async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
 
     await Permission.camera.request();
     await Permission.storage.request();
 
-    final image = await controller!.takePicture();
+    final image = await _controller!.takePicture();
     final bytes = await image.readAsBytes();
 
     final Directory appDir = await getApplicationDocumentsDirectory();
@@ -61,46 +66,54 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF8E7B9),
-      appBar: AppBar(
-        backgroundColor: Color(0xFFF8E7B9),
-        title: Text("Cámara"),
-      ),
-      body: controller == null || !controller!.value.isInitialized
-          ? Center(child: CircularProgressIndicator())
-          : Stack(
-        children: [
-          CameraPreview(controller!),
-          Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: FloatingActionButton(
-                backgroundColor: Colors.amber,
-                onPressed: takePictureAndSave,
-                child: Icon(Icons.camera_alt),
-              ),
+  Widget _buildCameraView() {
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
+      children: [
+        CameraPreview(_controller!),
+        Positioned(
+          bottom: 20,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: FloatingActionButton(
+              backgroundColor: Colors.amber,
+              onPressed: _takePictureAndSave,
+              child: Icon(Icons.camera_alt),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screens = [
+      _buildCameraView(),
+      ReportSelectionScreen(),
+      ReportListScreen(),
+    ];
+
+    return Scaffold(
+      backgroundColor: Color(0xFFF8E7B9),
+      body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _currentIndex,
         onTap: (index) {
-          if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ReportSelectionScreen()),
-            );
-          }
+          setState(() {
+            _currentIndex = index;
+          });
         },
+        selectedItemColor: Colors.brown,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.camera), label: 'Cámara'),
-          BottomNavigationBarItem(icon: Icon(Icons.download), label: 'Informe'),
+          BottomNavigationBarItem(icon: Icon(Icons.create), label: 'Informe'),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Reportes'),
         ],
       ),
     );

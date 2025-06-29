@@ -22,8 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = false);
 
     if (userData != null) {
-      final token = userData['data']['token'];
-      print('🔐 Token recibido: $token');
+      print('🎉 Login exitoso, datos: $userData');
 
       Navigator.pushReplacement(
         context,

@@ -26,7 +26,7 @@ class AuthService {
           'password': password,
         }),
       )
-          .timeout(const Duration(seconds: 10)); // Limita el tiempo de espera
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
@@ -51,19 +51,42 @@ class AuthService {
     final url = Uri.parse('${Env.baseUrl}/login?email=$email&password=$password');
 
     try {
+      print('🔵 Login request: POST $url');
       final response = await http.post(
         url,
-        headers: {'accept': 'application/json'}, // según lo que acepta el backend
+        headers: {'accept': 'application/json'},
       );
-
-      print('🔵 Login request: POST $url');
       print('🔴 Status code: ${response.statusCode}');
       print('⚪ Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        return decoded;
+
+        // Validar la estructura de la respuesta
+        if (decoded['codeError'] == 200 && decoded['data'] != null) {
+          final data = decoded['data'];
+          final token = data['token'];
+          final nombres = data['nombres'];
+          final dni = data['dni'];
+          final emailResp = data['email'];
+
+          print('✅ Token recibido: $token');
+
+          // Guardar en SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', token);
+          await prefs.setString('nombres', nombres);
+          await prefs.setString('dni', dni);
+          await prefs.setString('email', emailResp);
+
+          print('💾 Datos guardados: token, nombres, dni, email');
+          return data;
+        } else {
+          print('⚠️ Login fallido: datos incorrectos');
+          return null;
+        }
       } else {
+        print('⚠️ Login fallido: código ${response.statusCode}');
         return null;
       }
     } catch (e) {
@@ -100,6 +123,7 @@ class AuthService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    print('🔓 Sesión cerrada y preferencias limpiadas');
   }
 
   Future<String?> getToken() async {
