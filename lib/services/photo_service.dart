@@ -110,13 +110,15 @@ class PhotoService {
         "ruta": null, // explícito
         "nivelRiesgo": foto['nivelRiesgo'],
         "descripcion": foto['descripcion'],
-        "fechaCaptura": (foto['fechaCaptura'] as DateTime).toIso8601String(),
+        "fechaCaptura": foto['fechaCaptura'] is DateTime
+            ? (foto['fechaCaptura'] as DateTime).toIso8601String()
+            : foto['fechaCaptura'],
         "imagen": base64Image,
       });
     }
 
     final payload = {
-      "usuarioId": usuarioId,
+      "usuarioId": 1,
       "fechaCreacion": DateTime.now().toIso8601String(),
       "observaciones": observaciones,
       "fotos": fotosFinal,
