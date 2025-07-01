@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:emergentes/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'report_selection_screen.dart';
-import 'report_list_screen.dart'; // <-- tu pantalla de lista de reportes
+import 'report_list_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -47,11 +49,21 @@ class _CameraScreenState extends State<CameraScreen> {
     await Permission.camera.request();
     await Permission.storage.request();
 
+    final prefs = await SharedPreferences.getInstance();
+    final usuarioId = prefs.getInt('usuarioId');
+
+    if (usuarioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se encontró el usuario, inicia sesión de nuevo.')),
+      );
+      return;
+    }
+
     final image = await _controller!.takePicture();
     final bytes = await image.readAsBytes();
 
     final Directory appDir = await getApplicationDocumentsDirectory();
-    final Directory customDir = Directory('${appDir.path}/minesafe_photos');
+    final Directory customDir = Directory('${appDir.path}/minesafe_photos/usuario_$usuarioId');
 
     if (!await customDir.exists()) {
       await customDir.create(recursive: true);
@@ -62,8 +74,15 @@ class _CameraScreenState extends State<CameraScreen> {
     await file.writeAsBytes(bytes);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Imagen guardada en la app')),
+      SnackBar(content: Text('Imagen guardada en la galería')),
     );
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   Widget _buildCameraView() {
@@ -96,17 +115,25 @@ class _CameraScreenState extends State<CameraScreen> {
       _buildCameraView(),
       ReportSelectionScreen(),
       ReportListScreen(),
+      // Pantalla vacía para logout (no se usa, se intercepta el tap)
+      Center(child: Text('Cerrando sesión...')),
     ];
 
     return Scaffold(
       backgroundColor: Color(0xFFF8E7B9),
-      body: screens[_currentIndex],
+      body: _currentIndex == 3
+          ? Center(child: CircularProgressIndicator())
+          : screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+        onTap: (index) async {
+          if (index == 3) {
+            await _logout();
+          } else {
+            setState(() {
+              _currentIndex = index;
+            });
+          }
         },
         selectedItemColor: Colors.brown,
         unselectedItemColor: Colors.grey,
@@ -114,6 +141,7 @@ class _CameraScreenState extends State<CameraScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.camera), label: 'Cámara'),
           BottomNavigationBarItem(icon: Icon(Icons.create), label: 'Informe'),
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Reportes'),
+          BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Cerrar Sesión'),
         ],
       ),
     );

@@ -4,7 +4,7 @@ class ReportPhoto {
   final String nivelRiesgo;
   final String descripcion;
   final String fechaCaptura;
-  final String? ruta;
+  final String ruta;
 
   ReportPhoto({
     required this.imagenBase64,
@@ -12,7 +12,7 @@ class ReportPhoto {
     required this.nivelRiesgo,
     required this.descripcion,
     required this.fechaCaptura,
-    this.ruta,
+    required this.ruta,
   });
 
   factory ReportPhoto.fromJson(Map<String, dynamic> json) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/login_screen.dart';
+import 'screens/camera_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,12 @@ class MineSafeAIApp extends StatelessWidget {
     return MaterialApp(
       title: 'MineSafe AI',
       theme: ThemeData(primarySwatch: Colors.amber),
-      home: LoginScreen(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => LoginScreen(),
+        '/camera': (context) => CameraScreen(),
+        // aquí podrías agregar otras rutas si necesitas
+      },
     );
   }
 }

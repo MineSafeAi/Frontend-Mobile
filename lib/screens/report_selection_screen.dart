@@ -1,9 +1,8 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'report_form_screen.dart';
-import 'report_result_screen.dart';
 
 class ReportSelectionScreen extends StatefulWidget {
   @override
@@ -21,8 +20,18 @@ class _ReportSelectionScreenState extends State<ReportSelectionScreen> {
   }
 
   Future<void> _loadPhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuarioId = prefs.getInt('usuarioId');
+
+    if (usuarioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se encontró el usuario, inicia sesión de nuevo.')),
+      );
+      return;
+    }
+
     final directory = await getApplicationDocumentsDirectory();
-    final path = '${directory.path}/minesafe_photos';
+    final path = '${directory.path}/minesafe_photos/usuario_$usuarioId';
     final dir = Directory(path);
 
     if (await dir.exists()) {
@@ -34,6 +43,10 @@ class _ReportSelectionScreenState extends State<ReportSelectionScreen> {
 
       setState(() {
         _photos = files;
+      });
+    } else {
+      setState(() {
+        _photos = [];
       });
     }
   }
@@ -56,10 +69,8 @@ class _ReportSelectionScreenState extends State<ReportSelectionScreen> {
       return;
     }
 
-    // Convertimos las rutas seleccionadas a objetos File
     final selectedFiles = _selected.map((path) => File(path)).toList();
 
-    // Navegar a la pantalla de resultados simulados
     Navigator.push(
       context,
       MaterialPageRoute(

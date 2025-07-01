@@ -69,8 +69,10 @@ class AuthService {
           final nombres = data['nombres'];
           final dni = data['dni'];
           final emailResp = data['email'];
+          final id = data['id']; // 👈 obtenemos el id
 
           print('✅ Token recibido: $token');
+          print('🆔 Usuario ID recibido: $id');
 
           // Guardar en SharedPreferences
           final prefs = await SharedPreferences.getInstance();
@@ -78,8 +80,9 @@ class AuthService {
           await prefs.setString('nombres', nombres);
           await prefs.setString('dni', dni);
           await prefs.setString('email', emailResp);
+          await prefs.setInt('usuarioId', id); // 👈 guardamos el id
 
-          print('💾 Datos guardados: token, nombres, dni, email');
+          print('💾 Datos guardados: token, nombres, dni, email, usuarioId');
           return data;
         } else {
           print('⚠️ Login fallido: datos incorrectos');
@@ -124,6 +127,11 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     print('🔓 Sesión cerrada y preferencias limpiadas');
+  }
+
+  Future<int?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('usuarioId');
   }
 
   Future<String?> getToken() async {

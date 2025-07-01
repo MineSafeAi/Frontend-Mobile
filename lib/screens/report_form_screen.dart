@@ -17,6 +17,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   List<_ImageFormData> _formDataList = [];
   String observaciones = "";
   bool _loading = false;
+  List<ConditionType> _tiposCondicion = [];
 
   @override
   void initState() {
@@ -24,31 +25,36 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     _formDataList = widget.selectedImages.map((file) {
       return _ImageFormData(file: file);
     }).toList();
+
+    _loadTiposCondicion();
+  }
+
+  Future<void> _loadTiposCondicion() async {
+    final tipos = await PhotoService().obtenerTipoCondiciones();
+    setState(() {
+      _tiposCondicion = tipos;
+    });
   }
 
   Future<void> _submitForms() async {
     setState(() => _loading = true);
 
-    // Recuperar usuarioId (ejemplo si lo guardas en SharedPreferences)
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuarioId') ?? 0;
 
-    // Preparar lista de fotos
     List<Map<String, dynamic>> fotos = [];
 
     for (var data in _formDataList) {
-      final tipoId = await PhotoService().crearTipoCondicion(data.tipoCondicion);
-
-      if (tipoId == null) {
+      if (data.tipoCondicionId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error creando tipoCondicion: ${data.tipoCondicion}")),
+          SnackBar(content: Text("Selecciona el tipo de condición para todas las fotos")),
         );
         setState(() => _loading = false);
         return;
       }
 
       fotos.add({
-        "tipoCondicionId": tipoId,
+        "tipoCondicionId": data.tipoCondicionId,
         "ruta": data.file.path.split('/').last,
         "nivelRiesgo": data.nivelRiesgo,
         "descripcion": data.descripcion,
@@ -58,7 +64,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     }
 
     final success = await PhotoService().enviarReporteActa(
-      usuarioId: usuarioId,
       observaciones: observaciones,
       fotos: fotos,
     );
@@ -82,7 +87,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFF8E7B9),
       appBar: AppBar(title: Text("Llenar datos del reporte"), backgroundColor: Colors.brown),
-      body: ListView(
+      body: _tiposCondicion.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView(
         padding: EdgeInsets.all(12),
         children: [
           TextField(
@@ -100,9 +107,15 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                   children: [
                     Image.file(data.file, height: 150, fit: BoxFit.cover),
                     SizedBox(height: 8),
-                    TextFormField(
-                      initialValue: data.tipoCondicion,
-                      onChanged: (value) => data.tipoCondicion = value,
+                    DropdownButtonFormField<int>(
+                      value: data.tipoCondicionId,
+                      onChanged: (value) => setState(() => data.tipoCondicionId = value),
+                      items: _tiposCondicion.map((tipo) {
+                        return DropdownMenuItem(
+                          value: tipo.id,
+                          child: Text(tipo.nombre),
+                        );
+                      }).toList(),
                       decoration: InputDecoration(labelText: "Tipo de condición"),
                     ),
                     DropdownButtonFormField<String>(
@@ -139,14 +152,14 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
 class _ImageFormData {
   final File file;
-  String tipoCondicion;
+  int? tipoCondicionId;
   String nivelRiesgo;
   String descripcion;
   DateTime fechaCaptura;
 
   _ImageFormData({
     required this.file,
-    this.tipoCondicion = '',
+    this.tipoCondicionId,
     this.nivelRiesgo = 'Bajo',
     this.descripcion = '',
     DateTime? fechaCaptura,
